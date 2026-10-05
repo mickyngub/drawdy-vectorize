@@ -1,0 +1,26 @@
+{
+    "name": "drawdy-vectorize",
+    "version": "1.0.0",
+    "description": "Vectorize for Drawdy: trace an image into native pen strokes you can recolour, erase and move.",
+    "license": "MIT",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "node build.ts",
+        "test": "tsx --test test/*.test.ts",
+        "typecheck": "tsc --noEmit",
+        "preflight": "node scripts/preflight.mjs"
+    },
+    "devDependencies": {
+        "@drawdy/driver-protocol": "0.8.0",
+        "@rollup/plugin-typescript": "^12.1.2",
+        "@types/node": "^24",
+        "fflate": "^0.8.2",
+        "rollup": "^4.34.0",
+        "tslib": "^2.8.1",
+        "tsx": "^4.20.0",
+        "typescript": "^5",
+        "vite": "^8.2.1"
+    }
+}
