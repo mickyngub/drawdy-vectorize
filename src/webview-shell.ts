@@ -114,11 +114,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--drawdy-prim
         border-left: none;
         border-top: 1px solid var(--drawdy-border, #e5e5e5);
     }
-    footer {
-        flex-wrap: wrap;
-        gap: 8px 10px;
-    }
-    footer .status { flex: 1 1 100%; }
     footer .btn { flex: 1 1 auto; }
 }
 
@@ -144,10 +139,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--drawdy-prim
     gap: 8px;
 }
 .readout button {
+    min-height: 24px;
     border: 1px solid var(--drawdy-border, #e5e5e5);
     background: transparent;
     border-radius: var(--drawdy-radius-sm, 4px);
-    padding: 2px 7px;
+    padding: 2px 8px;
     font-size: 10px;
     cursor: pointer;
     color: var(--drawdy-muted-foreground, #7a7a7a);
@@ -169,10 +165,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--drawdy-prim
 }
 .small-btn {
     flex: none;
+    min-height: 24px;
     border: 1px solid var(--drawdy-border, #e5e5e5);
     background: transparent;
     border-radius: var(--drawdy-radius-sm, 4px);
-    padding: 2px 7px;
+    padding: 2px 8px;
     font-size: 10px;
     cursor: pointer;
     color: var(--drawdy-muted-foreground, #7a7a7a);
@@ -184,6 +181,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--drawdy-prim
 .field[hidden], .group[hidden], .note[hidden] { display: none; }
 .group { display: flex; flex-direction: column; gap: 10px; }
 .check {
+    min-height: 24px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -259,6 +257,7 @@ input[type="range"]::-moz-range-thumb {
 .seg button {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 24px;
     padding: 3px 6px;
     border: 1px solid var(--drawdy-border, #e5e5e5);
     background: transparent;
@@ -278,8 +277,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 input[type="color"] {
-    width: 26px;
-    height: 20px;
+    width: 28px;
+    height: 24px;
     padding: 0;
     border: 1px solid var(--drawdy-border, #e5e5e5);
     border-radius: var(--drawdy-radius-sm, 4px);
@@ -298,11 +297,11 @@ footer {
     border-top: 1px solid var(--drawdy-border, #e5e5e5);
     padding: 8px 12px;
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 6px;
     background: var(--drawdy-surface, transparent);
 }
-footer .grow { flex: 1; min-width: 0; }
+.actions { display: flex; justify-content: flex-end; gap: 6px; }
 .file-input {
     position: absolute;
     width: 1px;
@@ -312,11 +311,13 @@ footer .grow { flex: 1; min-width: 0; }
     pointer-events: none;
 }
 .status {
+    min-height: 14px;
     font-size: 10px;
     color: var(--drawdy-muted-foreground, #7a7a7a);
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 .status.bad { color: var(--drawdy-destructive, #dc2626); }
 .status.good { color: var(--drawdy-success, #16a34a); }
@@ -351,9 +352,9 @@ const BODY = `
     <aside class="panel" id="panel"></aside>
 </div>
 <footer>
-    <span class="status grow" id="status" role="status" aria-live="polite"></span>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
     <input type="file" id="upload-input" class="file-input" accept="image/*" tabindex="-1" aria-label="Upload image file" />
-    <button class="btn primary" id="place" disabled>Place on board</button>
+    <div class="actions"><button class="btn primary" id="place" disabled>Place on board</button></div>
 </footer>
 `;
 
@@ -363,7 +364,7 @@ export function shellHtml(js: string): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>:root{/*__DRAWDY_STYLING__*/}</style>
+<style id="drawdy-styling">:root{/*__DRAWDY_STYLING__*/}</style>
 <style>${CSS}</style>
 </head>
 <body>

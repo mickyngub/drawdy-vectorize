@@ -1,21 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { PLACE_GAP } from "../src/lib/free-spot";
 import {
-    BATCH_SIZE,
-    batches,
     boardStrokeWidth,
     countPoints,
     isValidStroke,
     mapPoints,
-    PLACE_GAP,
     PLACE_WIDTH,
+    preferredRect,
     strokeElements,
-    targetRect,
 } from "../src/lib/placement";
 
-test("a board image places the strokes 40 px to its right at the same height", () => {
+test("a board image prefers the spot 40 units to its right at the same height", () => {
     const source = { x: 100, y: 50, width: 300, height: 200 };
-    assert.deepEqual(targetRect(1024, 683, source, null), {
+    assert.deepEqual(preferredRect(1024, 683, source, null), {
         x: 100 + 300 + PLACE_GAP,
         y: 50,
         width: 200 / (683 / 1024),
@@ -23,9 +21,9 @@ test("a board image places the strokes 40 px to its right at the same height", (
     });
 });
 
-test("an upload is centred in the view at 480 wide", () => {
+test("an upload prefers the middle of the visible area at 480 wide", () => {
     const view = { x: -500, y: -300, width: 1000, height: 600 };
-    const rect = targetRect(1024, 512, null, view);
+    const rect = preferredRect(1024, 512, null, view);
     assert.deepEqual(rect, {
         x: -240,
         y: -120,
@@ -91,16 +89,6 @@ test("strokes become one group of freedraw elements with meta on the first", () 
     assert.deepEqual(second.meta, {
         "mickyngub.vectorize": { v: 1, part: true },
     });
-});
-
-test("placements split into batches of 500", () => {
-    const items = Array.from({ length: 1201 }, (_, i) => i);
-    const parts = batches(items);
-    assert.deepEqual(
-        parts.map((p) => p.length),
-        [BATCH_SIZE, BATCH_SIZE, 201]
-    );
-    assert.equal(parts[2][200], 1200);
 });
 
 test("stroke validation and point counts", () => {

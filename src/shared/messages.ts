@@ -35,18 +35,21 @@ export type WebviewToDriver =
           sourceId: string | null;
           params: Record<string, unknown>;
       }
+    | { type: "history"; action: "undo" | "redo" }
     | { type: "close" };
 
 export type DriverToWebview =
     | { type: "init"; params?: Record<string, unknown>; pen: Pen }
     | { type: "pen"; pen: Pen }
+    | { type: "theme"; css: string }
+    | { type: "selection"; ids: string[] }
     | {
           type: "source";
           blob: Blob;
           elementId: string;
           displayWidth: number;
           displayHeight: number;
+          note: string | null;
       }
-    | { type: "progress"; placed: number; total: number }
     | { type: "placed"; strokes: number }
     | { type: "error"; message: string };

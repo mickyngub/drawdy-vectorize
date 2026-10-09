@@ -10,6 +10,7 @@ import type {
     Pen,
     WebviewToDriver,
 } from "../src/shared/messages";
+import { wireKeys } from "./lib/keys";
 import { previewPaths } from "./lib/paths";
 import {
     COLOUR_MODES,
@@ -18,6 +19,7 @@ import {
     RESOLUTIONS,
     sanitizeParams,
 } from "./lib/params";
+import { looksLikePhoto } from "./lib/photo";
 import { borderIsDark, histogram, otsu } from "./lib/raster";
 import {
     DEFAULTS,
@@ -57,6 +59,9 @@ type Source = {
 
 const PARAMS_DEBOUNCE_MS = 400;
 const TRACE_DEBOUNCE_MS = 150;
+const PLACE_TIMEOUT_MS = 20_000;
+// A mode chosen before any image is loaded counts for the next image.
+const NEXT_IMAGE = "next";
 const PREVIEW_POINT_BUDGET = 400_000;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const UPLOAD_HINT =
@@ -71,9 +76,12 @@ const svg = document.getElementById("preview") as unknown as SVGSVGElement;
 const hint = document.getElementById("hint") as HTMLDivElement;
 const hintText = document.getElementById("hint-text") as HTMLSpanElement;
 const panel = document.getElementById("panel") as HTMLElement;
-const statusLine = document.getElementById("status") as HTMLSpanElement;
+const statusLine = document.getElementById("status") as HTMLDivElement;
 const placeButton = document.getElementById("place") as HTMLButtonElement;
 const uploadInput = document.getElementById("upload-input") as HTMLInputElement;
+const stylingTag = document.getElementById(
+    "drawdy-styling"
+) as HTMLStyleElement;
 
 let params: Params = { ...DEFAULTS };
 let pen: Pen = DEFAULT_PEN;
@@ -87,6 +95,11 @@ let generation = 0;
 let sourceCount = 0;
 let paramsTimer = 0;
 let traceTimer = 0;
+let placeTimer = 0;
+let savedMode: Mode = DEFAULTS.mode;
+let modePickedFor: string | null = null;
+let selectedIds: string[] = [];
+let sourceNote: string | null = null;
 const cache = new TraceCache();
 
 function send(message: WebviewToDriver): void {
@@ -99,7 +112,10 @@ function queueParams(): void {
         paramsTimer = 0;
         send({
             type: "params",
-            params: params as unknown as Record<string, unknown>,
+            params: { ...params, mode: savedMode } as unknown as Record<
+                string,
+                unknown
+            >,
         });
     }, PARAMS_DEBOUNCE_MS) as unknown as number;
 }
@@ -107,7 +123,7 @@ function queueParams(): void {
 function setStatus(text: string, tone: "" | "good" | "bad" = ""): void {
     statusLine.textContent = text;
     statusLine.title = text;
-    statusLine.className = `status grow${tone ? ` ${tone}` : ""}`;
+    statusLine.className = `status${tone ? ` ${tone}` : ""}`;
 }
 
 function setHint(text: string | null): void {
@@ -121,6 +137,23 @@ function setHint(text: string | null): void {
 
 const readoutLine = document.createElement("span");
 const sourceText = document.createElement("span");
+
+const sourceKey = (src: Source): string => src.board?.elementId ?? src.id;
+
+function showSource(): void {
+    if (!source) sourceText.textContent = "No image yet";
+    else if (!source.board) sourceText.textContent = "Using your uploaded image";
+    else
+        sourceText.textContent =
+            selectedIds.length === 1 && selectedIds[0] === source.board.elementId
+                ? "Using the selected image"
+                : "Using the last selected image";
+}
+
+function pickMode(mode: Mode): void {
+    savedMode = mode;
+    modePickedFor = source ? sourceKey(source) : NEXT_IMAGE;
+}
 
 const controls: {
     mode: SegmentedControl<Mode> | null;
@@ -242,6 +275,7 @@ function buildPanel(): void {
     resetButton.type = "button";
     resetButton.textContent = "Reset";
     resetButton.addEventListener("click", () => {
+        pickMode(DEFAULTS.mode);
         commit({ ...DEFAULTS });
         pushControls();
     });
@@ -262,7 +296,10 @@ function buildPanel(): void {
         "Mode",
         MODES,
         params.mode,
-        (mode) => commit({ mode })
+        (mode) => {
+            pickMode(mode);
+            commit({ mode });
+        }
     );
 
     makeRule(panel);
@@ -371,7 +408,7 @@ function buildPanel(): void {
     });
     controls.layersNote = el("div", "note", panel);
     controls.layersNote.textContent =
-        "Colour layers draw each layer in its own colour from the image.";
+        "Keeps the image's colours, so dark or white parts can vanish on a board of the same colour.";
 
     makeRule(panel);
 
@@ -494,6 +531,14 @@ async function runTrace(): Promise<void> {
         params = { ...params, threshold, invert };
         controls.threshold?.set(threshold);
         controls.invert?.set(invert);
+        if (modePickedFor !== sourceKey(src)) {
+            const mode = looksLikePhoto(working.rgba, working.w, working.h)
+                ? "layers"
+                : savedMode;
+            params = { ...params, mode };
+            controls.mode?.set(mode);
+            applyDerivedState();
+        }
     }
     const traced = await traceImage(
         working,
@@ -558,14 +603,25 @@ function renderPreview(): void {
     const limit = overLimit();
     if (limit) setStatus(limit, "bad");
     else if (result.empty) setStatus(result.empty);
-    else if (!placing) setStatus("");
+    else if (!placing) setStatus(sourceNote ?? "");
+}
+
+function stopPlacing(): void {
+    if (placeTimer) clearTimeout(placeTimer);
+    placeTimer = 0;
+    placing = false;
+    updatePlaceButton();
 }
 
 function place(): void {
-    if (!result || !working || !source || overLimit()) return;
+    if (!result || !working || !source || overLimit() || placing) return;
     placing = true;
     updatePlaceButton();
     setStatus("Placing…");
+    placeTimer = setTimeout(() => {
+        stopPlacing();
+        setStatus("Drawdy didn't answer. Try again.", "bad");
+    }, PLACE_TIMEOUT_MS) as unknown as number;
     send({
         type: "place",
         strokes: result.strokes,
@@ -595,9 +651,8 @@ function adoptSource(
     working = null;
     result = null;
     autoTune = true;
-    sourceText.textContent = board
-        ? "Using the selected image"
-        : "Using your uploaded image";
+    if (modePickedFor === NEXT_IMAGE) modePickedFor = sourceKey(source);
+    showSource();
     stage.classList.remove("empty");
     stage.setAttribute("aria-label", "Change image");
     frame.hidden = false;
@@ -635,14 +690,17 @@ async function decode(blob: Blob): Promise<{
 async function adoptBlob(
     blob: Blob,
     board: Source["board"],
-    failure: string
+    failure: string,
+    note: string | null = null
 ): Promise<void> {
     const decoded = await decode(blob);
     if (!decoded) {
         setStatus(failure, "bad");
         return;
     }
+    sourceNote = note;
     adoptSource(decoded.image, decoded.width, decoded.height, board);
+    if (note) setStatus(note);
 }
 
 function imageFileFrom(items: DataTransfer | null): File | null {
@@ -664,7 +722,11 @@ function wireInput(): void {
     uploadInput.addEventListener("change", () => {
         const file = uploadInput.files?.[0];
         uploadInput.value = "";
-        if (!file || !file.type.startsWith("image/")) return;
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            setStatus("That file is not an image.", "bad");
+            return;
+        }
         void adoptBlob(file, null, "That file could not be read as an image.");
     });
     const over = (event: DragEvent) => {
@@ -680,7 +742,11 @@ function wireInput(): void {
         event.preventDefault();
         stage.classList.remove("dragover");
         const file = imageFileFrom(event.dataTransfer);
-        if (!file) return;
+        if (!file) {
+            if (event.dataTransfer?.files.length)
+                setStatus("That file is not an image.", "bad");
+            return;
+        }
         void adoptBlob(file, null, "That file could not be read as an image.");
     });
     document.addEventListener("paste", (event) => {
@@ -689,9 +755,9 @@ function wireInput(): void {
         event.preventDefault();
         void adoptBlob(file, null, "That file could not be read as an image.");
     });
-    document.addEventListener("keydown", (event) => {
-        if (event.key !== "Escape") return;
-        send({ type: "close" });
+    wireKeys({
+        history: (action) => send({ type: "history", action }),
+        close: () => send({ type: "close" }),
     });
     new ResizeObserver(fitFrame).observe(stage);
 }
@@ -700,6 +766,7 @@ function handle(message: DriverToWebview): void {
     switch (message.type) {
         case "init": {
             params = sanitizeParams(message.params);
+            savedMode = params.mode;
             if (message.pen) pen = message.pen;
             pushControls();
             if (source) scheduleTrace(true);
@@ -708,6 +775,15 @@ function handle(message: DriverToWebview): void {
         case "pen": {
             pen = message.pen;
             renderPreview();
+            return;
+        }
+        case "theme": {
+            stylingTag.textContent = `:root{${message.css}}`;
+            return;
+        }
+        case "selection": {
+            selectedIds = Array.isArray(message.ids) ? message.ids : [];
+            showSource();
             return;
         }
         case "source": {
@@ -721,30 +797,23 @@ function handle(message: DriverToWebview): void {
                     elementId: message.elementId,
                     displayWidth: message.displayWidth,
                 },
-                "The selected image could not be read."
-            );
-            return;
-        }
-        case "progress": {
-            setStatus(
-                `Placing… ${message.placed.toLocaleString()} of ${message.total.toLocaleString()} strokes`
+                "The selected image could not be read.",
+                typeof message.note === "string" ? message.note : null
             );
             return;
         }
         case "placed": {
-            placing = false;
-            updatePlaceButton();
+            stopPlacing();
             setStatus(
-                `Placed ${message.strokes.toLocaleString()} ${
+                `Placed the trace (${message.strokes.toLocaleString()} ${
                     message.strokes === 1 ? "stroke" : "strokes"
-                } on the board.`,
+                }). Press ⌘Z or Ctrl+Z to undo.`,
                 "good"
             );
             return;
         }
         case "error": {
-            placing = false;
-            updatePlaceButton();
+            stopPlacing();
             setStatus(message.message, "bad");
             return;
         }

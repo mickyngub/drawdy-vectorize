@@ -5,43 +5,29 @@ import type {
     StrokeSpec,
     StrokeWidthSpec,
 } from "../shared/messages";
+import { centredIn, rightOf } from "./free-spot";
 
 export type FreedrawSchema = Extract<DrawdyElementSchema, { type: "freedraw" }>;
 
 export const PLACE_WIDTH = 480;
-export const PLACE_GAP = 40;
-export const BATCH_SIZE = 500;
 export const MAX_STROKES = 3000;
 export const MAX_POINTS = 200_000;
 export const DEFAULT_PEN: Pen = { color: "#1e1e1e", width: 2 };
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 
-export function targetRect(
+// Beside a board image at its height, or centred in the visible area for an upload.
+export function preferredRect(
     imageWidth: number,
     imageHeight: number,
     source: Rect | null,
-    view: Rect | null
+    area: Rect | null
 ): Rect {
     const aspect = imageHeight / imageWidth;
-    if (source) {
-        const height = source.height;
-        return {
-            x: source.x + source.width + PLACE_GAP,
-            y: source.y,
-            width: height / aspect,
-            height,
-        };
-    }
+    if (source) return rightOf(source, source.height / aspect, source.height);
     const width = PLACE_WIDTH;
     const height = width * aspect;
-    if (!view) return { x: 0, y: 0, width, height };
-    return {
-        x: view.x + (view.width - width) / 2,
-        y: view.y + (view.height - height) / 2,
-        width,
-        height,
-    };
+    return area ? centredIn(area, width, height) : { x: 0, y: 0, width, height };
 }
 
 export function mapPoints(
@@ -141,12 +127,4 @@ export function strokeElements(args: {
             },
         };
     });
-}
-
-export function batches<T>(items: T[], size = BATCH_SIZE): T[][] {
-    const out: T[][] = [];
-    for (let i = 0; i < items.length; i += size) {
-        out.push(items.slice(i, i + size));
-    }
-    return out;
 }
