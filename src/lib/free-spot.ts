@@ -119,10 +119,10 @@ async function issue<T>(
       requestId: ctx.nextRequestId(),
       req,
     } as Parameters<DriverCommandIssuer>[0])) as {
-      res: { error?: unknown } & Record<string, unknown>;
+      res: { error?: unknown; value?: unknown };
     };
     if (res?.res?.error !== undefined) return null;
-    return res.res as T;
+    return (res.res.value as T | undefined) ?? null;
   } catch {
     return null;
   }
