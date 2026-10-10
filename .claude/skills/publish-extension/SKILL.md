@@ -17,7 +17,7 @@ that it proves the path people actually take. Two accounts take part on
 purpose:
 
 - **Publisher account**: owns `mickyngub.vectorize` on Drawdy and
-  has push access to `github.com/mickyngub/vectorize`. It submits.
+  has push access to `github.com/mickyngub/drawdy-vectorize`. It submits.
 - **Admin account**: signs in to admin.drawdy.io. It reviews and approves.
 
 Submitting and approving are outward-facing: they publish to every user.
@@ -83,7 +83,7 @@ Hand the user these steps:
 1. Sign in to https://drawdy.io with the **publisher account** and open
    https://drawdy.io/account/extensions, tab **Submit**.
 2. **Connect GitHub** if it asks. It only checks push access to the repo.
-3. Repository URL: `https://github.com/mickyngub/vectorize`.
+3. Repository URL: `https://github.com/mickyngub/drawdy-vectorize`.
    **Branch, tag or commit**: leave empty for the tip of `main`, or paste the
    sha from preflight.
 4. **Submit for review**. Expect "Submitted mickyngub.vectorize
