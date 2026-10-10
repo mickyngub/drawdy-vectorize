@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- a clearer listing page: what the extension is for, how to use it, tips and privacy, in plain words
+
 ## 1.0.0
 
 First public release
