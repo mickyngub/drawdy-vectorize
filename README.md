@@ -2,6 +2,8 @@
 
 Trace an image into real Drawdy pen strokes. A logo, a scanned sketch or a photo becomes ink you can recolour, erase and move like anything you drew yourself.
 
+![Vectorize traces the selected Drawdy mascot image into white pen strokes placed beside it, then two of the strokes are recoloured red and blue](https://raw.githubusercontent.com/mickyngub/drawdy-vectorize/main/docs/media/vectorize.gif)
+
 ## What it's for
 
 - **Digitising paper sketches**: photograph a drawing and turn it into clean, editable strokes.

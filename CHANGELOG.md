@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- a short GIF on the listing page that shows tracing an image into pen strokes and recolouring them in action
+
 ## 1.0.1
 
 - a clearer listing page: what the extension is for, how to use it, tips and privacy, in plain words

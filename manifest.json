@@ -1,7 +1,7 @@
 {
     "driverId": "mickyngub.vectorize",
     "driverName": "Vectorize",
-    "driverVersion": "1.0.1",
+    "driverVersion": "1.0.2",
     "description": "Trace an image into native pen strokes you can recolour, erase and move. Use the selected image on the board, or upload, drop or paste one. Outline traces the edge of every shape and hole. Centerline follows the middle of each line, for sketches and scans. Colour layers splits the image into 2 to 8 colours and outlines each in its own colour. Tune threshold, detail, smoothing, specks, stroke width and colour in a live preview, then place the strokes as one group.",
     "icon": "icon.png",
     "main": "main.js",
