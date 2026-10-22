@@ -59,16 +59,17 @@ let chain: Promise<void> = Promise.resolve();
 const nextRequestId = (): string => String(requestId++);
 
 function stylingCssVars(styling: ModuleStyling): string {
-    return Object.entries(styling)
-        .map(([key, value]) =>
-            key === "theme"
-                ? `color-scheme: ${value};`
-                : `--drawdy-${key.replace(
-                      /[A-Z]/g,
-                      (c) => `-${c.toLowerCase()}`
-                  )}: ${value};`
-        )
-        .join("");
+    const { tokens, ...flat } = styling as ModuleStyling & {
+        tokens?: Record<string, string>;
+    };
+    const vars = Object.entries(flat).map(([key, value]) =>
+        key === "theme"
+            ? `color-scheme: ${value};`
+            : `--drawdy-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: ${value};`
+    );
+    for (const [name, value] of Object.entries(tokens ?? {}))
+        vars.push(`${name}: ${value};`);
+    return vars.join("");
 }
 
 function enqueue(task: () => Promise<void>): Promise<void> {

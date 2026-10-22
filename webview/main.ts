@@ -10,6 +10,15 @@ import type {
     Pen,
     WebviewToDriver,
 } from "../src/shared/messages";
+import {
+    COLOUR_INPUT,
+    HINT,
+    LABEL_ROW,
+    SECTION,
+    SEGMENT,
+    SMALL,
+    TRACK,
+} from "./lib/classes";
 import { wireKeys } from "./lib/keys";
 import { previewPaths } from "./lib/paths";
 import {
@@ -34,7 +43,6 @@ import {
 import {
     el,
     makeCheckbox,
-    makeRule,
     makeSegmented,
     makeSlider,
     type CheckControl,
@@ -64,8 +72,7 @@ const PLACE_TIMEOUT_MS = 20_000;
 const NEXT_IMAGE = "next";
 const PREVIEW_POINT_BUDGET = 400_000;
 const SVG_NS = "http://www.w3.org/2000/svg";
-const UPLOAD_HINT =
-    "Select an image on the board, or click here to upload one. You can also drop or paste an image.";
+const UPLOAD_HINT = "or click to upload, drop or paste one here";
 
 const api = acquireDrawdyApi();
 
@@ -102,6 +109,9 @@ let selectedIds: string[] = [];
 let sourceNote: string | null = null;
 const cache = new TraceCache();
 
+const HINT_ROW = `flex items-center justify-between gap-2 ${HINT}`;
+const GROUP = "flex flex-col gap-4";
+
 function send(message: WebviewToDriver): void {
     api.postMessage(message);
 }
@@ -123,7 +133,7 @@ function queueParams(): void {
 function setStatus(text: string, tone: "" | "good" | "bad" = ""): void {
     statusLine.textContent = text;
     statusLine.title = text;
-    statusLine.className = `status${tone ? ` ${tone}` : ""}`;
+    statusLine.dataset.tone = tone;
 }
 
 function setHint(text: string | null): void {
@@ -142,10 +152,12 @@ const sourceKey = (src: Source): string => src.board?.elementId ?? src.id;
 
 function showSource(): void {
     if (!source) sourceText.textContent = "No image yet";
-    else if (!source.board) sourceText.textContent = "Using your uploaded image";
+    else if (!source.board)
+        sourceText.textContent = "Using your uploaded image";
     else
         sourceText.textContent =
-            selectedIds.length === 1 && selectedIds[0] === source.board.elementId
+            selectedIds.length === 1 &&
+            selectedIds[0] === source.board.elementId
                 ? "Using the selected image"
                 : "Using the last selected image";
 }
@@ -268,10 +280,12 @@ function pushControls(): void {
 }
 
 function buildPanel(): void {
-    const head = el("div", "readout", panel);
+    const lines = el("div", SECTION, panel);
+    const head = el("div", HINT_ROW, lines);
+    readoutLine.className = "min-w-0 truncate";
     readoutLine.textContent = "No strokes yet";
     head.appendChild(readoutLine);
-    const resetButton = el("button", undefined, head);
+    const resetButton = el("button", SMALL, head);
     resetButton.type = "button";
     resetButton.textContent = "Reset";
     resetButton.addEventListener("click", () => {
@@ -280,10 +294,11 @@ function buildPanel(): void {
         pushControls();
     });
 
-    const sourceRow = el("div", "source", panel);
+    const sourceRow = el("div", HINT_ROW, lines);
+    sourceText.className = "min-w-0 truncate";
     sourceText.textContent = "No image yet";
     sourceRow.appendChild(sourceText);
-    const useSelected = el("button", "small-btn", sourceRow);
+    const useSelected = el("button", SMALL, sourceRow);
     useSelected.type = "button";
     useSelected.textContent = "Use selected image";
     useSelected.addEventListener("click", () => {
@@ -302,16 +317,14 @@ function buildPanel(): void {
         }
     );
 
-    makeRule(panel);
-
-    controls.thresholdGroup = el("div", "group", panel);
+    controls.thresholdGroup = el("div", GROUP, panel);
     controls.threshold = makeSlider(
         controls.thresholdGroup,
         { label: "Threshold", ...RANGES.threshold },
         params.threshold,
         (threshold) => commit({ threshold })
     );
-    const auto = el("button", "small-btn", controls.threshold.head);
+    const auto = el("button", SMALL, controls.threshold.head);
     auto.type = "button";
     auto.textContent = "Auto";
     auto.setAttribute("aria-label", "Auto threshold");
@@ -328,7 +341,7 @@ function buildPanel(): void {
         (invert) => commit({ invert })
     );
 
-    controls.layersGroup = el("div", "group", panel);
+    controls.layersGroup = el("div", GROUP, panel);
     controls.colours = makeSlider(
         controls.layersGroup,
         { label: "Colours", ...RANGES.colours },
@@ -369,8 +382,6 @@ function buildPanel(): void {
         (smooth) => commit({ smooth })
     );
 
-    makeRule(panel);
-
     controls.widthMode = makeSegmented<"auto" | "fixed">(
         panel,
         "Stroke width",
@@ -388,29 +399,31 @@ function buildPanel(): void {
         (width) => commit({ width })
     );
 
-    controls.colourRow = el("div", "field", panel);
-    const colourHead = el("div", "field-head", controls.colourRow);
+    controls.colourRow = el("div", SECTION, panel);
+    const colourHead = el("div", LABEL_ROW, controls.colourRow);
     el("label", undefined, colourHead).textContent = "Colour";
-    const colourLine = el("div", "colour-row", controls.colourRow);
-    const colourSeg = el("div", "seg", colourLine);
+    const colourLine = el("div", "flex items-center gap-2", controls.colourRow);
+    const colourSeg = el("div", `${TRACK} flex-1`, colourLine);
     colourSeg.setAttribute("role", "group");
     colourSeg.setAttribute("aria-label", "Colour");
     controls.colour = {
         set: makeColourModes(colourSeg),
         wrap: controls.colourRow,
     };
-    controls.custom = el("input", undefined, colourLine);
+    controls.custom = el(
+        "input",
+        `${COLOUR_INPUT} h-8 w-10 rounded-lg [&::-moz-color-swatch]:rounded-[7px] [&::-webkit-color-swatch]:rounded-[7px]`,
+        colourLine
+    );
     controls.custom.type = "color";
     controls.custom.value = params.custom;
     controls.custom.setAttribute("aria-label", "Custom colour");
     controls.custom.addEventListener("input", () => {
         commit({ custom: controls.custom!.value });
     });
-    controls.layersNote = el("div", "note", panel);
+    controls.layersNote = el("div", HINT, panel);
     controls.layersNote.textContent =
         "Keeps the image's colours, so dark or white parts can vanish on a board of the same colour.";
-
-    makeRule(panel);
 
     controls.resolution = makeSegmented<number>(
         panel,
@@ -423,7 +436,7 @@ function buildPanel(): void {
 
 function makeColourModes(row: HTMLElement): (value: ColourMode) => void {
     const buttons = COLOUR_MODES.map(([value, text]) => {
-        const button = el("button", undefined, row);
+        const button = el("button", SEGMENT, row);
         button.type = "button";
         button.textContent = text;
         button.addEventListener("click", () => {
@@ -434,9 +447,10 @@ function makeColourModes(row: HTMLElement): (value: ColourMode) => void {
     });
     const paint = (current: ColourMode) => {
         for (const entry of buttons) {
-            const on = entry.value === current;
-            entry.button.classList.toggle("on", on);
-            entry.button.setAttribute("aria-pressed", String(on));
+            entry.button.setAttribute(
+                "aria-pressed",
+                String(entry.value === current)
+            );
         }
     };
     paint(params.colour);
@@ -452,8 +466,8 @@ function fitFrame(): void {
         availableWidth / working.w,
         availableHeight / working.h
     );
-    frame.style.width = `${Math.floor(working.w * scale)}px`;
-    frame.style.height = `${Math.floor(working.h * scale)}px`;
+    frame.style.setProperty("--w", `${Math.floor(working.w * scale)}px`);
+    frame.style.setProperty("--h", `${Math.floor(working.h * scale)}px`);
 }
 
 function buildWorking(src: Source, resolution: number): Working | null {
@@ -653,7 +667,7 @@ function adoptSource(
     autoTune = true;
     if (modePickedFor === NEXT_IMAGE) modePickedFor = sourceKey(source);
     showSource();
-    stage.classList.remove("empty");
+    stage.removeAttribute("data-empty");
     stage.setAttribute("aria-label", "Change image");
     frame.hidden = false;
     setHint(null);
@@ -731,16 +745,16 @@ function wireInput(): void {
     });
     const over = (event: DragEvent) => {
         event.preventDefault();
-        stage.classList.add("dragover");
+        stage.toggleAttribute("data-dragover", true);
     };
     stage.addEventListener("dragover", over);
     stage.addEventListener("dragenter", over);
     stage.addEventListener("dragleave", () =>
-        stage.classList.remove("dragover")
+        stage.removeAttribute("data-dragover")
     );
     stage.addEventListener("drop", (event) => {
         event.preventDefault();
-        stage.classList.remove("dragover");
+        stage.removeAttribute("data-dragover");
         const file = imageFileFrom(event.dataTransfer);
         if (!file) {
             if (event.dataTransfer?.files.length)

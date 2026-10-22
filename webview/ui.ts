@@ -1,3 +1,13 @@
+import {
+    FOCUS,
+    LABEL_ROW,
+    SECTION,
+    SEGMENT,
+    SLIDER,
+    TRACK,
+} from "./lib/classes";
+import { ICONS, icon } from "./lib/icons";
+
 export function el<K extends keyof HTMLElementTagNameMap>(
     tag: K,
     className?: string,
@@ -33,12 +43,24 @@ export function makeSlider(
     initial: number,
     onInput: (value: number) => void
 ): SliderControl {
-    const wrap = el("div", "field", parent);
-    const head = el("div", "field-head", wrap);
-    const label = el("label", undefined, head);
+    const wrap = el("div", `group ${SECTION}`, parent);
+    const head = el(
+        "div",
+        `${LABEL_ROW} group-data-dim:text-fg-disabled`,
+        wrap
+    );
+    const label = el("label", "mr-auto min-w-0 truncate", head);
     label.textContent = spec.label;
-    const value = el("span", "value", head);
-    const input = el("input", undefined, wrap);
+    const value = el(
+        "span",
+        "shrink-0 text-fg-subtle tabular-nums group-data-dim:text-fg-disabled",
+        head
+    );
+    const input = el(
+        "input",
+        `${SLIDER} disabled:cursor-not-allowed group-data-dim:bg-control group-data-dim:bg-none group-data-dim:[&::-webkit-slider-thumb]:bg-fg-disabled`,
+        wrap
+    );
     input.type = "range";
     input.min = String(spec.min);
     input.max = String(spec.max);
@@ -49,6 +71,10 @@ export function makeSlider(
 
     const show = (v: number) => {
         value.textContent = format(v);
+        input.style.setProperty(
+            "--fill",
+            `${((v - spec.min) / (spec.max - spec.min)) * 100}%`
+        );
     };
     input.value = String(initial);
     show(initial);
@@ -65,7 +91,7 @@ export function makeSlider(
             show(v);
         },
         setDim(dim) {
-            wrap.classList.toggle("dim", dim);
+            wrap.toggleAttribute("data-dim", dim);
             input.disabled = dim;
         },
         setText(text) {
@@ -82,7 +108,7 @@ export function fillSegmented<T extends string | number>(
     onPick: (value: T) => void
 ): (value: T) => void {
     const buttons = options.map(([value, text]) => {
-        const button = el("button", undefined, row);
+        const button = el("button", SEGMENT, row);
         button.type = "button";
         button.textContent = text;
         button.addEventListener("click", () => {
@@ -94,9 +120,10 @@ export function fillSegmented<T extends string | number>(
 
     const paint = (current: T) => {
         for (const entry of buttons) {
-            const on = entry.value === current;
-            entry.button.classList.toggle("on", on);
-            entry.button.setAttribute("aria-pressed", String(on));
+            entry.button.setAttribute(
+                "aria-pressed",
+                String(entry.value === current)
+            );
         }
     };
     paint(initial);
@@ -115,11 +142,11 @@ export function makeSegmented<T extends string | number>(
     initial: T,
     onPick: (value: T) => void
 ): SegmentedControl<T> {
-    const wrap = el("div", "field", parent);
-    const head = el("div", "field-head", wrap);
+    const wrap = el("div", SECTION, parent);
+    const head = el("div", LABEL_ROW, wrap);
     const text = el("label", undefined, head);
     text.textContent = label;
-    const row = el("div", "seg", wrap);
+    const row = el("div", TRACK, wrap);
     row.setAttribute("role", "group");
     row.setAttribute("aria-label", label);
     const paint = fillSegmented(row, options, initial, onPick);
@@ -136,10 +163,26 @@ export function makeCheckbox(
     initial: boolean,
     onChange: (value: boolean) => void
 ): CheckControl {
-    const wrap = el("label", "check", parent);
-    const input = el("input", undefined, wrap);
+    const wrap = el(
+        "label",
+        "inline-flex cursor-pointer items-center gap-2 self-start text-label text-fg-muted",
+        parent
+    );
+    const box = el("span", "relative grid size-4 shrink-0", wrap);
+    const input = el(
+        "input",
+        `peer size-4 cursor-pointer appearance-none rounded-sm border border-line-strong transition-colors checked:border-transparent checked:bg-accent-pressed ${FOCUS}`,
+        box
+    );
     input.type = "checkbox";
     input.checked = initial;
+    box.insertAdjacentHTML(
+        "beforeend",
+        icon(
+            ICONS.check,
+            "pointer-events-none absolute inset-0.5 size-3 text-on-accent opacity-0 peer-checked:opacity-100"
+        )
+    );
     const text = el("span", undefined, wrap);
     text.textContent = label;
     input.addEventListener("change", () => onChange(input.checked));
@@ -148,8 +191,4 @@ export function makeCheckbox(
             input.checked = value;
         },
     };
-}
-
-export function makeRule(parent: HTMLElement): void {
-    el("div", "rule", parent);
 }

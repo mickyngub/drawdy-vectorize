@@ -1,360 +1,29 @@
-const CSS = `
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
-body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--drawdy-background, #ffffff);
-    color: var(--drawdy-foreground, #111111);
-    font-size: 12px;
-    line-height: 1.4;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-}
-button, input, select { font: inherit; color: inherit; }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--drawdy-primary, #4f46e5); outline-offset: 1px; }
-
-.app {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    align-items: stretch;
-}
-
-.stage {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
-    background: var(--drawdy-background, #ffffff);
-    overflow: hidden;
-    cursor: pointer;
-}
-.stage:focus-visible { outline: 2px solid var(--drawdy-primary, #4f46e5); outline-offset: -2px; }
-.pick {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 12px;
-    color: #ffffff;
-    font-size: 11px;
-    opacity: 0;
-    transition: opacity 120ms ease;
-    pointer-events: none;
-}
-.pick span {
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.62);
-}
-.stage:hover .pick, .stage:focus-visible .pick { opacity: 1; }
-.stage.empty .pick { display: none; }
-.frame {
-    position: relative;
-    flex: none;
-    border: 1px dashed var(--drawdy-border, #e5e5e5);
-}
-.frame[hidden] { display: none; }
-.frame canvas, .frame svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-.frame canvas { opacity: 0.28; }
-.stage.dragover::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border: 2px dashed var(--drawdy-primary, #4f46e5);
-    border-radius: var(--drawdy-radius-md, 8px);
-    pointer-events: none;
-}
-.hint {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-    pointer-events: none;
-}
-.hint[hidden] { display: none; }
-.hint span {
-    max-width: 260px;
-    padding: 8px 12px;
-    border-radius: var(--drawdy-radius-md, 8px);
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    background: var(--drawdy-surface, rgba(255, 255, 255, 0.92));
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-    font-size: 11px;
-}
-
-@media (max-width: 640px) {
-    .app { flex-direction: column; }
-    .app .stage {
-        flex: none;
-        height: 40vh;
-        min-height: 180px;
-        padding: 10px;
-    }
-    .app .panel {
-        width: auto;
-        flex: 1;
-        min-height: 0;
-        border-left: none;
-        border-top: 1px solid var(--drawdy-border, #e5e5e5);
-    }
-    footer .btn { flex: 1 1 auto; }
-}
-
-.panel {
-    width: 272px;
-    flex: none;
-    border-left: 1px solid var(--drawdy-border, #e5e5e5);
-    background: var(--drawdy-surface, transparent);
-    overflow-y: auto;
-    padding: 10px 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.readout {
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-}
-.readout button {
-    min-height: 24px;
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    background: transparent;
-    border-radius: var(--drawdy-radius-sm, 4px);
-    padding: 2px 8px;
-    font-size: 10px;
-    cursor: pointer;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-}
-.readout button:hover { color: var(--drawdy-foreground, #111111); }
-
-.source {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 11px;
-}
-.source span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.small-btn {
-    flex: none;
-    min-height: 24px;
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    background: transparent;
-    border-radius: var(--drawdy-radius-sm, 4px);
-    padding: 2px 8px;
-    font-size: 10px;
-    cursor: pointer;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-}
-.small-btn:hover:not(:disabled) { color: var(--drawdy-foreground, #111111); }
-.small-btn:disabled { opacity: 0.4; cursor: default; }
-.field-head label { margin-right: auto; }
-.field-head .small-btn { margin-left: 6px; }
-.field[hidden], .group[hidden], .note[hidden] { display: none; }
-.group { display: flex; flex-direction: column; gap: 10px; }
-.check {
-    min-height: 24px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    cursor: pointer;
-}
-.check input { margin: 0; accent-color: var(--drawdy-primary, #4f46e5); }
-.note {
-    font-size: 10px;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-}
-.colour-row { display: flex; align-items: center; gap: 6px; }
-.colour-row .seg { flex: 1; }
-.colour-row input[type="color"][hidden] { display: none; }
-
-.field { display: flex; flex-direction: column; gap: 3px; }
-.field.dim { opacity: 0.4; }
-.field-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 6px;
-}
-.field-head label {
-    font-size: 10px;
-    letter-spacing: 0.02em;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-}
-.field-head .value {
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-}
-input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 14px;
-    background: transparent;
-    cursor: pointer;
-}
-input[type="range"]::-webkit-slider-runnable-track {
-    height: 3px;
-    border-radius: 999px;
-    background: var(--drawdy-border, #e0e0e0);
-}
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 11px;
-    height: 11px;
-    margin-top: -4px;
-    border-radius: 50%;
-    background: var(--drawdy-primary, #4f46e5);
-}
-input[type="range"]::-moz-range-track {
-    height: 3px;
-    border-radius: 999px;
-    background: var(--drawdy-border, #e0e0e0);
-}
-input[type="range"]::-moz-range-thumb {
-    width: 11px;
-    height: 11px;
-    border: none;
-    border-radius: 50%;
-    background: var(--drawdy-primary, #4f46e5);
-}
-
-.seg {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-}
-.seg button {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 24px;
-    padding: 3px 6px;
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    background: transparent;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-    border-radius: var(--drawdy-radius-sm, 4px);
-    cursor: pointer;
-    font-size: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.seg button:hover { color: var(--drawdy-foreground, #111111); }
-.seg button.on {
-    background: var(--drawdy-primary, #4f46e5);
-    border-color: var(--drawdy-primary, #4f46e5);
-    color: var(--drawdy-primary-foreground, #ffffff);
-}
-
-input[type="color"] {
-    width: 28px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    border-radius: var(--drawdy-radius-sm, 4px);
-    background: transparent;
-    cursor: pointer;
-}
-
-.rule {
-    height: 1px;
-    background: var(--drawdy-border, #e5e5e5);
-    margin: 2px 0;
-}
-
-footer {
-    flex: none;
-    border-top: 1px solid var(--drawdy-border, #e5e5e5);
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    background: var(--drawdy-surface, transparent);
-}
-.actions { display: flex; justify-content: flex-end; gap: 6px; }
-.file-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    overflow: hidden;
-    pointer-events: none;
-}
-.status {
-    min-height: 14px;
-    font-size: 10px;
-    color: var(--drawdy-muted-foreground, #7a7a7a);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-.status.bad { color: var(--drawdy-destructive, #dc2626); }
-.status.good { color: var(--drawdy-success, #16a34a); }
-.btn {
-    flex: none;
-    padding: 5px 11px;
-    border-radius: var(--drawdy-radius-sm, 4px);
-    border: 1px solid var(--drawdy-border, #e5e5e5);
-    background: transparent;
-    cursor: pointer;
-    font-size: 11px;
-}
-.btn:hover:not(:disabled) { border-color: var(--drawdy-foreground, #111111); }
-.btn:disabled { opacity: 0.4; cursor: default; }
-.btn.primary {
-    background: var(--drawdy-primary, #4f46e5);
-    border-color: var(--drawdy-primary, #4f46e5);
-    color: var(--drawdy-primary-foreground, #ffffff);
-}
-`;
+import { FOCUS, PRIMARY, SCROLL_BODY, STATUS } from "../webview/lib/classes";
+import { ICONS, icon } from "../webview/lib/icons";
+import { PANEL_CSS } from "./panel-css";
 
 const BODY = `
-<div class="app">
-    <div class="stage empty" id="stage" role="button" tabindex="0" aria-label="Upload an image">
-        <div class="frame" id="frame" hidden>
-            <canvas id="source"></canvas>
-            <svg id="preview" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+<div class="flex min-h-0 flex-1 flex-col sm:flex-row">
+    <div class="flex shrink-0 px-4 pt-3 sm:min-w-0 sm:flex-1 sm:pb-3">
+        <div class="group relative flex h-48 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-section transition-colors data-dragover:bg-hover data-empty:h-auto data-empty:border data-empty:border-dashed data-empty:border-line-strong data-empty:bg-transparent data-empty:px-4 data-empty:py-6 data-empty:hover:bg-hover sm:h-auto ${FOCUS}" id="stage" role="button" tabindex="0" aria-label="Upload an image" data-empty>
+            <div class="relative h-(--h) w-(--w) flex-none ring-1 ring-line" id="frame" hidden>
+                <canvas id="source" class="absolute inset-0 block size-full opacity-28"></canvas>
+                <svg id="preview" class="absolute inset-0 block size-full" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+            </div>
+            <div class="flex flex-col items-center gap-1 text-center" id="hint" hidden>
+                ${icon(ICONS.upload, "mb-1 size-5 text-fg-subtle")}
+                <span class="text-label text-fg">Select an image on the board</span>
+                <span class="text-body text-fg-subtle" id="hint-text"></span>
+            </div>
+            <div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 group-data-dragover:opacity-100 group-data-empty:hidden"><span class="rounded-full bg-black/60 px-2.5 py-1 text-caption text-white">Click to change image</span></div>
         </div>
-        <div class="hint" id="hint" hidden><span id="hint-text"></span></div>
-        <div class="pick"><span>Click to change image</span></div>
     </div>
-    <aside class="panel" id="panel"></aside>
+    <aside class="${SCROLL_BODY} sm:w-72 sm:flex-none sm:border-l sm:border-divider" id="panel"></aside>
 </div>
-<footer>
-    <div class="status" id="status" role="status" aria-live="polite"></div>
-    <input type="file" id="upload-input" class="file-input" accept="image/*" tabindex="-1" aria-label="Upload image file" />
-    <div class="actions"><button class="btn primary" id="place" disabled>Place on board</button></div>
+<footer class="flex shrink-0 flex-col gap-2 border-t border-divider px-4 py-3">
+    <div class="${STATUS}" id="status" role="status" aria-live="polite"></div>
+    <input type="file" id="upload-input" class="pointer-events-none absolute size-px overflow-hidden opacity-0" accept="image/*" tabindex="-1" aria-label="Upload image file" />
+    <div class="flex"><button class="${PRIMARY}" id="place" disabled>Place on board</button></div>
 </footer>
 `;
 
@@ -364,10 +33,11 @@ export function shellHtml(js: string): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/google-sans-flex@5.3.2/wght.css" />
 <style id="drawdy-styling">:root{/*__DRAWDY_STYLING__*/}</style>
-<style>${CSS}</style>
+<style>${PANEL_CSS}</style>
 </head>
-<body>
+<body class="flex h-screen flex-col overflow-hidden bg-panel font-sans text-body text-fg antialiased">
 ${BODY}
 <script>${js}</script>
 </body>
