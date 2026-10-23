@@ -23,9 +23,7 @@ import type {
     WebviewToDriver,
 } from "./shared/messages";
 import { WEBVIEW_HTML } from "./webview-html";
-
-// Drawdy shows this through <img>, where currentColor is black, so the colours are explicit.
-const ACTION_BUTTON_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="18" height="18"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs><rect x="1" y="1" width="22" height="22" rx="6" fill="url(#g)"/><g transform="translate(12 12) scale(0.72) translate(-12 -12)"><path d="M5 18C8 6 16 18 19 6" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/><rect x="2.8" y="15.8" width="4.4" height="4.4" rx="0.8" fill="#ffffff"/><rect x="16.8" y="3.8" width="4.4" height="4.4" rx="0.8" fill="#ffffff"/></g></svg>`;
+import { ACTION_BUTTON_SVG } from "./action-button";
 
 const PARAMS_KV_KEY = "params";
 const PERMISSION_MESSAGE =
