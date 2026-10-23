@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- a new icon, shown on the marketplace card and on the extension's button
+
 ## 1.0.3
 
 - the panel now uses Drawdy's own colours and font
