@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- the panel now uses Drawdy's own colours and font
+- a drop zone for your image, Mode with the selected option in grey instead of lime, and slider values beside their labels
+- every control shows a focus ring when you use the keyboard
+
 ## 1.0.2
 
 - a short GIF on the listing page that shows tracing an image into pen strokes and recolouring them in action
